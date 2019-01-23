@@ -5,13 +5,21 @@
 
 #include "../util.h"
 
+#if defined(__linux__) | defined(__OpenBSD__)
+	#define UPTIME_MASK CLOCK_BOOTTIME
+#elif defined(__FreeBSD__)
+	#define UPTIME_MASK CLOCK_UPTIME
+#else
+	#define UPTIME_MASK CLOCK_MONOTONIC
+#endif
+
 const char *
 uptime(void)
 {
 	uintmax_t h, m;
 	struct timespec uptime;
 
-	if (clock_gettime(CLOCK_BOOTTIME, &uptime) < 0) {
+	if (clock_gettime(UPTIME_MASK, &uptime) < 0) {
 		warn("clock_gettime 'CLOCK_BOOTTIME'");
 		return NULL;
 	}

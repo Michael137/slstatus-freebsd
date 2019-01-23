@@ -6,6 +6,9 @@
 #if defined(__OpenBSD__)
 	#include <sys/types.h>
 	#include <sys/socket.h>
+#elif defined(__FreeBSD__)
+	#include <sys/socket.h>
+	#include <netinet/in.h>
 #endif
 
 #include "../util.h"
