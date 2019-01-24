@@ -195,4 +195,90 @@
 
 		return NULL;
 	}
+#elif defined(__FreeBSD__)
+	#include <unistd.h>
+	#include <sys/sysctl.h>
+	#include <sys/ioctl.h>
+	#include <dev/acpica/acpiio.h>
+	#include <fcntl.h>
+
+	int load_battery_info(union acpi_battery_ioctl_arg* battio) {
+		int fd;
+
+		fd = open("/dev/acpi", O_RDONLY);
+		if (fd < 0) {
+			warn("open '/dev/acpi':");
+			return 0;
+		}
+
+		if (ioctl(fd, ACPIIO_BATT_GET_BATTINFO, battio) == -1
+				|| (battio->battinfo).state == ACPI_BATT_STAT_NOT_PRESENT) {
+			warn("ioctl 'ACPIIO_BATT_GET_BATTINFO':");
+			close(fd);
+			return 0;
+		} 
+
+		return close(fd), 1;
+	}
+
+	const char *
+	battery_perc(const char *unused)
+	{
+		union acpi_battery_ioctl_arg battio;
+		battio.unit = 0;
+		if(load_battery_info(&battio) == 0
+				|| battio.battinfo.cap == -1)
+			return NULL;
+
+		return bprintf("%d", battio.battinfo.cap);
+	}
+
+	const char *
+	battery_state(const char *unused)
+	{
+		union acpi_battery_ioctl_arg battio;
+		char const* state;
+
+		battio.unit = 0;
+		if(load_battery_info(&battio) == 0)
+			return NULL;
+
+		switch(battio.battinfo.state & ACPI_BATT_STAT_BST_MASK) {
+			case 0:
+			case ACPI_BATT_STAT_CHARGING:
+			case ACPI_BATT_STAT_CHARGING | ACPI_BATT_STAT_CRITICAL:
+				state = "+";
+				break;
+			case ACPI_BATT_STAT_DISCHARG:
+			case ACPI_BATT_STAT_DISCHARG | ACPI_BATT_STAT_CRITICAL:
+				state = "-";
+				break;
+			case ACPI_BATT_STAT_CRITICAL:
+				state = "!";
+				break;
+			default:
+				state = "?";
+		}
+
+		return state;
+	}
+
+	const char *
+	battery_remaining(const char *unused)
+	{
+		int rem;
+		union acpi_battery_ioctl_arg battio;
+
+		battio.unit = 0;
+		if(load_battery_info(&battio) == 0)
+			return NULL;
+
+		// In minutes
+		rem = battio.battinfo.min;
+
+		if(rem == -1)
+			return NULL;
+
+		return bprintf("%uh %02um", rem / 60, rem % 60);
+	}
 #endif

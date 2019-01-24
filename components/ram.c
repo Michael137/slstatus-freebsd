@@ -174,15 +174,15 @@
 		// struct vmtotal vm_stats;
 		// int mib[] = {CTL_VM, VM_TOTAL};
 
-		int free_pages;
 		size_t len;
-		len = sizeof(free_pages);
-
-		if((sysctlbyname("vm.stats.vm.v_free_count", &free_pages, &len, NULL, 0) != -1)
-					&& len)
-				return fmt_human(free_pages * getpagesize() / 1024, 1024);
+		int free_pages;
 		
-		return NULL;
+		len = sizeof(free_pages);
+		if((sysctlbyname("vm.stats.vm.v_free_count", &free_pages, &len, NULL, 0) == -1)
+					|| !len)
+			return NULL;
+
+		return fmt_human(free_pages * getpagesize() / 1024, 1024);
 	}
 
 	const char *
