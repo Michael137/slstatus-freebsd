@@ -156,4 +156,35 @@
 
 		return NULL;
 	}
+#elif defined(__FreeBSD__)
+	#include <stdlib.h>
+	#include <sys/sysctl.h>
+	#include <sys/types.h>
+	#include <unistd.h>
+
+	const char *
+	ram_free(void) { return NULL; }
+
+	const char *
+	ram_perc(void){ return NULL; }
+
+	const char *
+	ram_total(void) {
+		// TODO: use sysctlnametomib instead?
+		// struct vmtotal vm_stats;
+		// int mib[] = {CTL_VM, VM_TOTAL};
+
+		int free_pages;
+		size_t len;
+		len = sizeof(free_pages);
+
+		if((sysctlbyname("vm.stats.vm.v_free_count", &free_pages, &len, NULL, 0) != -1)
+					&& len)
+				return fmt_human(free_pages * getpagesize() / 1024, 1024);
+		
+		return NULL;
+	}
+
+	const char *
+	ram_used(void){ return NULL; }
 #endif
