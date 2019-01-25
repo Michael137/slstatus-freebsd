@@ -160,31 +160,65 @@
 	#include <stdlib.h>
 	#include <sys/sysctl.h>
 	#include <sys/types.h>
+	#include <sys/vmmeter.h>
 	#include <unistd.h>
+	#include <vm/vm_param.h>
 
 	const char *
-	ram_free(void) { return NULL; }
-
-	const char *
-	ram_perc(void){ return NULL; }
-
-	const char *
-	ram_total(void) {
-		// TODO: use sysctlnametomib instead?
-		// struct vmtotal vm_stats;
-		// int mib[] = {CTL_VM, VM_TOTAL};
-
+	ram_free(void) { 
+		struct vmtotal vm_stats;
+		int mib[] = {CTL_VM, VM_TOTAL};
 		size_t len;
-		int free_pages;
-		
-		len = sizeof(free_pages);
-		if((sysctlbyname("vm.stats.vm.v_free_count", &free_pages, &len, NULL, 0) == -1)
-					|| !len)
-			return NULL;
 
-		return fmt_human(free_pages * getpagesize(), 1024);
+		len = sizeof(struct vmtotal);
+		if (sysctl(mib, 2, &vm_stats, &len, NULL, 0) == -1
+				|| !len)
+			return NULL;
+		
+		return fmt_human(vm_stats.t_free * getpagesize(), 1024);
 	}
 
 	const char *
-	ram_used(void){ return NULL; }
+	ram_total(void) { 
+		int npages;
+		size_t len;
+
+		len = sizeof(npages);
+		if (sysctlbyname("vm.stats.vm.v_page_count", &npages, &len, NULL, 0) == -1
+				|| !len)
+			return NULL;
+		
+		return fmt_human(npages * getpagesize(), 1024);
+	}
+
+	const char *
+	ram_perc(void) {
+		int npages;
+		int active;
+		size_t len;
+
+		len = sizeof(npages);
+		if (sysctlbyname("vm.stats.vm.v_page_count", &npages, &len, NULL, 0) == -1
+				|| !len)
+			return NULL;
+		
+		if (sysctlbyname("vm.stats.vm.v_active_count", &active, &len, NULL, 0) == -1
+				|| !len)
+			return NULL;
+
+		return bprintf("%d", active * 100 / npages);
+	}
+
+	const char *
+	ram_used(void) {
+		int active;
+		size_t len;
+
+		len = sizeof(active);
+		
+		if (sysctlbyname("vm.stats.vm.v_active_count", &active, &len, NULL, 0) == -1
+				|| !len)
+			return NULL;
+		return fmt_human(active * getpagesize(), 1024);
+	}
 #endif
