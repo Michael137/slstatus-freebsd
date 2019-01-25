@@ -182,7 +182,7 @@
 					|| !len)
 			return NULL;
 
-		return fmt_human(free_pages * getpagesize() / 1024, 1024);
+		return fmt_human(free_pages * getpagesize(), 1024);
 	}
 
 	const char *
