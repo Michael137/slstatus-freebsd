@@ -197,4 +197,76 @@
 
 		return fmt_human(used * 1024, 1024);
 	}
+#elif defined(__FreeBSD__)
+	#include <stdlib.h>
+	#include <sys/types.h>
+	#include <fcntl.h>
+	#include <unistd.h>
+	#include <kvm.h>
+
+	static int getswapinfo(int* used, int* total)
+	{
+		kvm_t *kd;
+		struct kvm_swap swap_info[1];
+		int size;
+
+		size = 1;
+		kd = kvm_open(NULL, NULL, NULL, O_RDONLY, "kvm_open");
+		if(kd == NULL ||
+				kvm_getswapinfo(kd, swap_info, size, 0 /* Unused flags */) == -1) {
+			warn("getswapinfo:");
+			kvm_close(kd);
+			return 1;
+		}
+
+		*total = swap_info[0].ksw_total;
+		*used = swap_info[0].ksw_used;
+
+		kvm_close(kd);
+		return 0;
+	}
+
+	const char *
+	swap_free(void)
+	{
+		int used, total;
+
+		if(getswapinfo(&used, &total))
+			return NULL;
+
+		return fmt_human((total - used) * getpagesize(), 1024);
+	}
+
+	const char *
+	swap_perc(void)
+	{
+		int used, total;
+
+		if(getswapinfo(&used, &total))
+			return NULL;
+
+		return bprintf("%d", used * 100 / total);
+	}
+
+	const char *
+	swap_total(void)
+	{
+		int used, total;
+
+		if(getswapinfo(&used, &total))
+			return NULL;
+
+		return fmt_human(total * getpagesize(), 1024);
+	}
+
+	const char *
+	swap_used(void)
+	{
+		int used, total;
+
+		if(getswapinfo(&used, &total))
+			return NULL;
+
+		return fmt_human(used * getpagesize(), 1024);
+	}
 #endif
