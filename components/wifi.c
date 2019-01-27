@@ -95,7 +95,7 @@
 
 		return id;
 	}
-#elif defined(__OpenBSD__)
+#elif defined(__OpenBSD__) 
 	#include <net/if.h>
 	#include <net/if_media.h>
 	#include <net80211/ieee80211.h>
@@ -170,5 +170,48 @@
 		}
 
 		return NULL;
+	}
+#elif defined(__FreeBSD__)
+	#include <sys/ioctl.h>
+	#include <net/ethernet.h>
+	#include <net/if.h>
+	#include <net80211/ieee80211_ioctl.h>
+	#include <sys/socket.h>
+	#include <sys/types.h>
+	#include <stdlib.h>
+
+	const char *
+	wifi_perc(const char *interface)
+	{
+		return NULL;
+	}
+
+	const char *
+	wifi_essid(const char *interface)
+	{
+		struct ieee80211req ireq;
+		char ssid[IEEE80211_NWID_LEN + 1];
+
+		int sockfd;
+		sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+		memset(&ireq, 0,sizeof(ireq));
+		strncpy(ireq.i_name, interface, sizeof(ireq.i_name));
+
+		ireq.i_type = IEEE80211_IOC_SSID;
+		ireq.i_data = &ssid;
+		ireq.i_len = sizeof(ssid);
+
+		ioctl(sockfd, SIOCG80211, (caddr_t)&ireq);
+		close(sockfd);
+		int len;
+		if (ireq.i_len < sizeof(ssid))
+			len = ireq.i_len + 1;
+		else
+			len = sizeof(ssid);
+
+		ssid[len - 1] = '\0';
+
+		return bprintf("%s", ssid);
 	}
 #endif
