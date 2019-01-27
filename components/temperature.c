@@ -3,6 +3,9 @@
 
 #include "../util.h"
 
+/* kelvin to celsius */
+#define KEVTOC(t) ((t) - 273150000) / 1E6
+
 #if defined(__linux__)
 	#include <stdint.h>
 
@@ -17,7 +20,7 @@
 
 		return bprintf("%ju", temp / 1000);
 	}
-#elif defined(__OpenBSD__)
+#elif defined(__OpenBSD__) 
 	#include <stdio.h>
 	#include <sys/time.h> /* before <sys/sensors.h> for struct timeval */
 	#include <sys/sensors.h>
@@ -33,7 +36,7 @@
 		mib[0] = CTL_HW;
 		mib[1] = HW_SENSORS;
 		mib[2] = 0; /* cpu0 */
-		mib[3] = SENSOR_TEMP;
+		mib[3] = SENSOR_TEMP; 
 		mib[4] = 0; /* temp0 */
 
 		size = sizeof(temp);
@@ -44,6 +47,25 @@
 		}
 
 		/* kelvin to celsius */
-		return bprintf("%d", (temp.value - 273150000) / 1E6);
+		return bprintf("%d", KEVTOC(temp.value));
+	}
+#elif defined(__FreeBSD__)
+	#include <stdio.h>
+	#include <sys/sysctl.h>
+
+	const char *
+	temp(const char *zone)
+	{
+		char buf[256];
+		int temp;
+		size_t len;
+
+		len = sizeof(temp);
+		snprintf(buf, sizeof(buf), "hw.acpi.thermal.%s.temperature", zone);
+		if (sysctlbyname(buf, &temp, &len, NULL, 0) == -1
+				|| !len)
+			return NULL;
+
+		return bprintf("%d", KEVTOC(temp));
 	}
 #endif
