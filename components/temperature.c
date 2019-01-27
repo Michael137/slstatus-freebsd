@@ -3,8 +3,6 @@
 
 #include "../util.h"
 
-/* kelvin to celsius */
-#define KEVTOC(t) ((t) - 273150000) / 1E6
 
 #if defined(__linux__)
 	#include <stdint.h>
@@ -47,17 +45,21 @@
 		}
 
 		/* kelvin to celsius */
-		return bprintf("%d", KEVTOC(temp.value));
+		return bprintf("%d", (temp.value - 273150000) / 1E6);
 	}
 #elif defined(__FreeBSD__)
 	#include <stdio.h>
+	#include <stdlib.h>
 	#include <sys/sysctl.h>
+
+	/* kelvin to decimal celcius */
+	#define KEVTOC(t) (((t) - 2731) / 10), abs(((t) - 2731) % 10)
 
 	const char *
 	temp(const char *zone)
 	{
 		char buf[256];
-		int temp;
+		int temp = 0;
 		size_t len;
 
 		len = sizeof(temp);
