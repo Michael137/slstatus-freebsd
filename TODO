@@ -1,0 +1,4 @@
+components/wifi.c
+components/netspeeds.c
+components/cpu.c
+components/temperature.c
