@@ -68,6 +68,6 @@
 				|| !len)
 			return NULL;
 
-		return bprintf("%d", KEVTOC(temp));
+		return bprintf("%d.d", KEVTOC(temp));
 	}
 #endif
