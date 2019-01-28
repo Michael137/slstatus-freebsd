@@ -179,11 +179,41 @@
 	#include <sys/socket.h>
 	#include <sys/types.h>
 	#include <stdlib.h>
+	#include <dev/wi/if_wavelan_ieee.h>
+	#include <net/if.h>
+	#include <net/if_media.h>
+
+	struct wi_req {
+		u_int16_t	wi_len;
+		u_int16_t	wi_type;
+		u_int16_t	wi_val[WI_MAX_DATALEN];
+	};	
 
 	const char *
 	wifi_perc(const char *interface)
 	{
-		return NULL;
+		int	s;
+		struct ifreq ifr;
+		struct wi_req wreq;
+
+		if ((s = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+			return NULL;
+
+		bzero((char *)&wreq, sizeof(wreq));
+		bzero((char *)&ifr, sizeof(ifr));
+
+		wreq.wi_len = WI_MAX_DATALEN;
+		wreq.wi_type = WI_RID_COMMS_QUALITY;
+		ifr.ifr_data = (caddr_t)&wreq;
+		strlcpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));
+
+		if (ioctl(s, SIOCGWAVELAN, &ifr) == -1) {
+			close(s);
+			return NULL;
+		}
+		close(s);
+
+		return bprintf("%d", (wreq.wi_val[1]));
 	}
 
 	const char *
