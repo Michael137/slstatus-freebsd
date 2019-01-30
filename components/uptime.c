@@ -5,7 +5,7 @@
 
 #include "../util.h"
 
-#if defined(__linux__) | defined(__OpenBSD__)
+#ifdef CLOCK_BOOTTIME
 	#define UPTIME_MASK CLOCK_BOOTTIME
 #elif defined(__FreeBSD__)
 	#define UPTIME_MASK CLOCK_UPTIME
