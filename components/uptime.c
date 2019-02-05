@@ -5,22 +5,24 @@
 
 #include "../util.h"
 
-#ifdef CLOCK_BOOTTIME
-	#define UPTIME_MASK CLOCK_BOOTTIME
-#elif defined(__FreeBSD__)
-	#define UPTIME_MASK CLOCK_UPTIME
+#if defined(CLOCK_BOOTTIME)
+	#define UPTIME_FLAG CLOCK_BOOTTIME
+#elif defined(CLOCK_UPTIME)
+	#define UPTIME_FLAG CLOCK_UPTIME
 #else
-	#define UPTIME_MASK CLOCK_MONOTONIC
+	#define UPTIME_FLAG CLOCK_MONOTONIC
 #endif
 
 const char *
 uptime(void)
 {
+	char buf[256];
 	uintmax_t h, m;
 	struct timespec uptime;
 
-	if (clock_gettime(UPTIME_MASK, &uptime) < 0) {
-		warn("clock_gettime 'CLOCK_BOOTTIME'");
+	if (clock_gettime(UPTIME_FLAG, &uptime) < 0) {
+		snprintf(buf, 256, "clock_gettime %d", UPTIME_FLAG);
+		warn(buf);
 		return NULL;
 	}
 
