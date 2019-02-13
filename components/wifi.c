@@ -260,6 +260,6 @@
 			return bprintf("%s", ssid);
 		}
 
-		return "";
+		return NULL;
 	}
 #endif

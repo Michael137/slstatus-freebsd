@@ -1,1 +1,2 @@
-components/wifi.c: wifi_perc use ieee80211_sta_info struct
+ram.c
+swap.c
