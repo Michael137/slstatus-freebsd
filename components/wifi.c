@@ -211,7 +211,7 @@
 		int rssi_dbm;
 		int sockfd;
 		size_t len;
-		char *fmt;
+		const char *fmt;
 
 		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			warn("socket 'AF_INET':");
@@ -246,7 +246,7 @@
 		char ssid[IEEE80211_NWID_LEN + 1];
 		size_t len;
 		int sockfd;
-		char *fmt;
+		const char *fmt;
 
 		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			warn("socket 'AF_INET':");
