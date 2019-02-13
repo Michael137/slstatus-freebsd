@@ -8,6 +8,10 @@
 
 #include "../util.h"
 
+#define RSSI_TO_PERC(rssi) rssi >= -50 ? 100 : \
+				    			(rssi <= -100 ? 0 : \
+				    			(2 * (rssi + 100)))
+
 #if defined(__linux__)
 	#include <limits.h>
 	#include <linux/wireless.h>
@@ -150,9 +154,7 @@
 			if (nr.nr_max_rssi) {
 				q = IEEE80211_NODEREQ_RSSI(&nr);
 			} else {
-				q = nr.nr_rssi >= -50 ? 100 :
-				    (nr.nr_rssi <= -100 ? 0 :
-				    (2 * (nr.nr_rssi + 100)));
+				q = RSSI_TO_PERC(nr.nr_rssi);
 			}
 			return bprintf("%d", q);
 		}
@@ -172,76 +174,92 @@
 		return NULL;
 	}
 #elif defined(__FreeBSD__)
-	#include <sys/ioctl.h>
-	#include <net/ethernet.h>
 	#include <net/if.h>
 	#include <net80211/ieee80211_ioctl.h>
-	#include <sys/socket.h>
-	#include <sys/types.h>
-	#include <stdlib.h>
-	#include <dev/wi/if_wavelan_ieee.h>
-	#include <net/if.h>
-	#include <net/if_media.h>
 
-	struct wi_req {
-		u_int16_t	wi_len;
-		u_int16_t	wi_type;
-		u_int16_t	wi_val[WI_MAX_DATALEN];
-	};	
+	int
+	load_ieee80211req(int sock, const char *interface, void *data, int type, size_t *len)
+	{
+		char warn_buf[256];
+		struct ieee80211req ireq;
+		memset(&ireq, 0, sizeof(ireq));
+		ireq.i_type = type;
+		ireq.i_data = (caddr_t) data;
+		ireq.i_len = *len;
+
+		strlcpy(ireq.i_name, interface, sizeof(ireq.i_name));
+		if (ioctl(sock, SIOCG80211, &ireq) < 0) {
+			snprintf(warn_buf,  sizeof(warn_buf),
+					"ioctl: 'SIOCG80211': %d", type);
+			warn(warn_buf);
+			return 0;
+		}
+
+		*len = ireq.i_len;
+		return 1;
+	}
 
 	const char *
 	wifi_perc(const char *interface)
 	{
-		int	s;
-		struct ifreq ifr;
-		struct wi_req wreq;
+		union {
+			struct ieee80211req_sta_req sta;
+			uint8_t buf[24 * 1024];
+		} info;
+		uint8_t bssid[IEEE80211_ADDR_LEN];
+		int rssi_dbm;
+		int sockfd;
+		size_t len;
 
-		if ((s = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-			return NULL;
-
-		bzero((char *)&wreq, sizeof(wreq));
-		bzero((char *)&ifr, sizeof(ifr));
-
-		wreq.wi_len = WI_MAX_DATALEN;
-		wreq.wi_type = WI_RID_COMMS_QUALITY;
-		ifr.ifr_data = (caddr_t)&wreq;
-		strlcpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));
-
-		if (ioctl(s, SIOCGWAVELAN, &ifr) == -1) {
-			close(s);
-			return NULL;
+		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+			warn("socket 'AF_INET':");
+			return 0;
 		}
-		close(s);
 
-		return bprintf("%d", (wreq.wi_val[1]));
+		/* Retreive MAC address of interface */
+		len = IEEE80211_ADDR_LEN;
+		if (load_ieee80211req(sockfd, interface, &bssid, IEEE80211_IOC_BSSID, &len))
+		{
+			/* Retrieve info on station with above BSSID */
+			memset(&info, 0, sizeof(info));
+			memcpy(info.sta.is_u.macaddr, bssid, sizeof(bssid));
+
+			len = sizeof(info);
+			if (load_ieee80211req(sockfd, interface, &info, IEEE80211_IOC_STA_INFO, &len)) {
+				rssi_dbm = info.sta.info[0].isi_noise +
+ 					         info.sta.info[0].isi_rssi / 2;
+				return bprintf("%d", RSSI_TO_PERC(rssi_dbm));
+			}
+		}
+
+		close(sockfd);
+		return NULL;
 	}
 
 	const char *
 	wifi_essid(const char *interface)
 	{
-		struct ieee80211req ireq;
 		char ssid[IEEE80211_NWID_LEN + 1];
-
+		size_t len;
 		int sockfd;
-		sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
-		memset(&ireq, 0,sizeof(ireq));
-		strncpy(ireq.i_name, interface, sizeof(ireq.i_name));
+		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+			warn("socket 'AF_INET':");
+			return 0;
+		}
 
-		ireq.i_type = IEEE80211_IOC_SSID;
-		ireq.i_data = &ssid;
-		ireq.i_len = sizeof(ssid);
+		len = sizeof(ssid);
+		memset(&ssid, 0, len);
+		if (load_ieee80211req(sockfd, interface, &ssid, IEEE80211_IOC_SSID, &len )) {
+			if (len < sizeof(ssid))
+				len += 1;
+			else
+				len = sizeof(ssid);
 
-		ioctl(sockfd, SIOCG80211, (caddr_t)&ireq);
-		close(sockfd);
-		int len;
-		if (ireq.i_len < sizeof(ssid))
-			len = ireq.i_len + 1;
-		else
-			len = sizeof(ssid);
+			ssid[len - 1] = '\0';
+			return bprintf("%s", ssid);
+		}
 
-		ssid[len - 1] = '\0';
-
-		return bprintf("%s", ssid);
+		return "";
 	}
 #endif
