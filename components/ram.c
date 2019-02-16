@@ -157,9 +157,7 @@
 		return NULL;
 	}
 #elif defined(__FreeBSD__)
-	#include <stdlib.h>
 	#include <sys/sysctl.h>
-	#include <sys/types.h>
 	#include <sys/vmmeter.h>
 	#include <unistd.h>
 	#include <vm/vm_param.h>
@@ -180,7 +178,7 @@
 
 	const char *
 	ram_total(void) { 
-		int npages;
+		long npages;
 		size_t len;
 
 		len = sizeof(npages);
@@ -193,8 +191,8 @@
 
 	const char *
 	ram_perc(void) {
-		int npages;
-		int active;
+		long npages;
+		long active;
 		size_t len;
 
 		len = sizeof(npages);
@@ -211,14 +209,14 @@
 
 	const char *
 	ram_used(void) {
-		int active;
+		long active;
 		size_t len;
 
 		len = sizeof(active);
-		
 		if (sysctlbyname("vm.stats.vm.v_active_count", &active, &len, NULL, 0) == -1
 				|| !len)
 			return NULL;
+
 		return fmt_human(active * getpagesize(), 1024);
 	}
 #endif
