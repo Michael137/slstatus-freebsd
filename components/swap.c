@@ -204,35 +204,37 @@
 	#include <unistd.h>
 	#include <kvm.h>
 
-	static int getswapinfo(int* used, int* total)
+	static int getswapinfo(struct kvm_swap *swap_info, size_t size)
 	{
 		kvm_t *kd;
-		struct kvm_swap swap_info[1];
-		int size;
 
-		size = 1;
-		kd = kvm_open(NULL, NULL, NULL, O_RDONLY, "kvm_open");
-		if(kd == NULL ||
-				kvm_getswapinfo(kd, swap_info, size, 0 /* Unused flags */) == -1) {
-			warn("getswapinfo:");
-			kvm_close(kd);
-			return 1;
+		kd = kvm_openfiles(NULL, "/dev/null", NULL, 0, NULL);
+		if(kd == NULL) {
+			warn("kvm_openfiles '/dev/null':");
+			return 0;
 		}
 
-		*total = swap_info[0].ksw_total;
-		*used = swap_info[0].ksw_used;
+		if(kvm_getswapinfo(kd, swap_info, size, 0 /* Unused flags */) == -1) {
+			warn("kvm_getswapinfo:");
+			kvm_close(kd);
+			return 0;
+		}
 
 		kvm_close(kd);
-		return 0;
+		return 1;
 	}
 
 	const char *
 	swap_free(void)
 	{
-		int used, total;
+		struct kvm_swap swap_info[1];
+		long used, total;
 
-		if(getswapinfo(&used, &total))
+		if(!getswapinfo(swap_info, 1))
 			return NULL;
+
+		total = swap_info[0].ksw_total;
+		used = swap_info[0].ksw_used;
 
 		return fmt_human((total - used) * getpagesize(), 1024);
 	}
@@ -240,10 +242,14 @@
 	const char *
 	swap_perc(void)
 	{
-		int used, total;
+		struct kvm_swap swap_info[1];
+		long used, total;
 
-		if(getswapinfo(&used, &total))
+		if(!getswapinfo(swap_info, 1))
 			return NULL;
+
+		total = swap_info[0].ksw_total;
+		used = swap_info[0].ksw_used;
 
 		return bprintf("%d", used * 100 / total);
 	}
@@ -251,10 +257,13 @@
 	const char *
 	swap_total(void)
 	{
-		int used, total;
+		struct kvm_swap swap_info[1];
+		long total;
 
-		if(getswapinfo(&used, &total))
+		if(!getswapinfo(swap_info, 1))
 			return NULL;
+
+		total = swap_info[0].ksw_total;
 
 		return fmt_human(total * getpagesize(), 1024);
 	}
@@ -262,10 +271,13 @@
 	const char *
 	swap_used(void)
 	{
-		int used, total;
+		struct kvm_swap swap_info[1];
+		long used;
 
-		if(getswapinfo(&used, &total))
+		if(!getswapinfo(swap_info, 1))
 			return NULL;
+
+		used = swap_info[0].ksw_used;
 
 		return fmt_human(used * getpagesize(), 1024);
 	}
