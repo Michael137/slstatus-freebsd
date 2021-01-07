@@ -18,8 +18,6 @@
 		return bprintf("%ju", num);
 	}
 #elif defined(__OpenBSD__) | defined(__FreeBSD__)
-	// Entropy information not needed on BSD systems since they use PRNGs
-	// for /dev/random
 	const char *
 	entropy(void)
 	{

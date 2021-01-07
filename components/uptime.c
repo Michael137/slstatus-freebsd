@@ -16,13 +16,13 @@
 const char *
 uptime(void)
 {
-	char buf[256];
+	char warn_buf[256];
 	uintmax_t h, m;
 	struct timespec uptime;
 
 	if (clock_gettime(UPTIME_FLAG, &uptime) < 0) {
-		snprintf(buf, 256, "clock_gettime %d", UPTIME_FLAG);
-		warn(buf);
+		snprintf(warn_buf, 256, "clock_gettime %d", UPTIME_FLAG);
+		warn(warn_buf);
 		return NULL;
 	}
 

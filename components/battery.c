@@ -52,6 +52,7 @@
 		} map[] = {
 			{ "Charging",    "+" },
 			{ "Discharging", "-" },
+			{ "Full",        "o" },
 		};
 		size_t i;
 		char path[PATH_MAX], state[12];
@@ -196,11 +197,7 @@
 		return NULL;
 	}
 #elif defined(__FreeBSD__)
-	#include <dev/acpica/acpiio.h>
-	#include <fcntl.h>
-	#include <sys/ioctl.h>
 	#include <sys/sysctl.h>
-	#include <unistd.h>
 
 	const char *
 	battery_perc(const char *unused)

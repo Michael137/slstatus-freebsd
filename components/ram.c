@@ -163,7 +163,7 @@
 	#include <vm/vm_param.h>
 
 	const char *
-	ram_free(void) { 
+	ram_free(void) {
 		struct vmtotal vm_stats;
 		int mib[] = {CTL_VM, VM_TOTAL};
 		size_t len;
@@ -172,34 +172,34 @@
 		if (sysctl(mib, 2, &vm_stats, &len, NULL, 0) == -1
 				|| !len)
 			return NULL;
-		
+
 		return fmt_human(vm_stats.t_free * getpagesize(), 1024);
 	}
 
 	const char *
-	ram_total(void) { 
-		long npages;
+	ram_total(void) {
+		unsigned int npages;
 		size_t len;
 
 		len = sizeof(npages);
 		if (sysctlbyname("vm.stats.vm.v_page_count", &npages, &len, NULL, 0) == -1
 				|| !len)
 			return NULL;
-		
+
 		return fmt_human(npages * getpagesize(), 1024);
 	}
 
 	const char *
 	ram_perc(void) {
-		long npages;
-		long active;
+		unsigned int npages;
+		unsigned int active;
 		size_t len;
 
 		len = sizeof(npages);
 		if (sysctlbyname("vm.stats.vm.v_page_count", &npages, &len, NULL, 0) == -1
 				|| !len)
 			return NULL;
-		
+
 		if (sysctlbyname("vm.stats.vm.v_active_count", &active, &len, NULL, 0) == -1
 				|| !len)
 			return NULL;
@@ -209,7 +209,7 @@
 
 	const char *
 	ram_used(void) {
-		long active;
+		unsigned int active;
 		size_t len;
 
 		len = sizeof(active);

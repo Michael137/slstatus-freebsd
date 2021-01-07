@@ -18,7 +18,7 @@ struct arg {
 };
 
 char buf[1024];
-static int done;
+static volatile sig_atomic_t done;
 static Display *dpy;
 
 #include "config.h"
@@ -26,9 +26,8 @@ static Display *dpy;
 static void
 terminate(const int signo)
 {
-	(void)signo;
-
-	done = 1;
+	if (signo != SIGUSR1)
+		done = 1;
 }
 
 static void
@@ -42,7 +41,7 @@ difftimespec(struct timespec *res, struct timespec *a, struct timespec *b)
 static void
 usage(void)
 {
-	die("usage: %s [-s]", argv0);
+	die("usage: %s [-s] [-1]", argv0);
 }
 
 int
@@ -57,6 +56,9 @@ main(int argc, char *argv[])
 
 	sflag = 0;
 	ARGBEGIN {
+		case '1':
+			done = 1;
+			/* fallthrough */
 		case 's':
 			sflag = 1;
 			break;
@@ -72,12 +74,14 @@ main(int argc, char *argv[])
 	act.sa_handler = terminate;
 	sigaction(SIGINT,  &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
+	act.sa_flags |= SA_RESTART;
+	sigaction(SIGUSR1, &act, NULL);
 
 	if (!sflag && !(dpy = XOpenDisplay(NULL))) {
 		die("XOpenDisplay: Failed to open display");
 	}
 
-	while (!done) {
+	do {
 		if (clock_gettime(CLOCK_MONOTONIC, &start) < 0) {
 			die("clock_gettime:");
 		}
@@ -124,7 +128,7 @@ main(int argc, char *argv[])
 				}
 			}
 		}
-	}
+	} while (!done);
 
 	if (!sflag) {
 		XStoreName(dpy, DefaultRootWindow(dpy), NULL);
