@@ -6,7 +6,7 @@ const unsigned int interval = 1000;
 /* text to show if no value can be retrieved */
 static const char unknown_str[] = "n/a";
 
-static const char* const separator = "|";
+static const char* const SEPARATOR = "|";
 
 /* maximum output string length */
 #define MAXLEN 2048
@@ -68,30 +68,30 @@ static const char* const separator = "|";
 static const struct arg args[] = {
 	/* function format          argument */
 	{ uptime,		"%s",			NULL },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
 	{ battery_state,"%s ",			NULL },
 	{ battery_perc,	"%s%% ",		NULL },
 	{ battery_remaining, "(%s)",	NULL },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
-	{ ram_free,		"RAM: (%s%%)",	NULL },
+	{ ram_used,		"RAM: %s ",		NULL },
 	{ ram_perc,		"(%s%%)",		NULL },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
 	{ cpu_perc,		"CPU: %s%%",	NULL },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
 	{ disk_used,	"%.4s/",		"/" },
 	{ disk_total,	"%.4s GiB",		"/" },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
 	{ wifi_essid,	"%s ",			"wlan0" },
 	{ wifi_perc,	"(%s%%)",		"wlan0" },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
 	{ keymap,		"%s",			NULL },
-	{ separator,	"%s",			NULL },
+	{ separator,	SEPARATOR,		NULL },
 
 	{ datetime,		"%s",			"%F %T" },
 };
